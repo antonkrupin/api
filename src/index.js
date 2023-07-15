@@ -50,7 +50,30 @@ const server = new ApolloServer({
     }
 });
 
-server.applyMiddleware({ app, path: '/api' });
+let apolloServer = null;
+async function startServer() {
+  apolloServer = new ApolloServer({
+    typeDefs,
+  resolvers,
+  validationRules: [depthLimit(5), createComplexityLimitRule(1000)],
+  context: ({ req }) => {
+    // get the user token from the headers
+    const token = req.headers.authorization;
+    // try to retrieve a user with the token
+    const user = getUser(token);
+    // for now, let's log the user to the console:
+    console.log(user);
+    // add the db models and the user to the context
+    return { models, user };
+    }
+  });
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app, path: '/api' });
+}
+
+startServer();
+
+// server.applyMiddleware({ app, path: '/api' });
 
 app.listen({ port }, () => {
   console.log(
